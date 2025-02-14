@@ -94,11 +94,18 @@ Over in OKD, in the web browser, you should look to see the application appear i
 
 #### 2. Expose the Service
 Expose your FastAPI service externally by creating a route, also tagging it:
+
 ```bash
 oc expose svc/mt12-cicd-demo --labels=app=mt12-cicd-demo
 ```
-*Explanation*:  
-- This command creates a Route resource with a public URL to your FastAPI application and tags it for bulk deletion later.
+
+After doing so, **once your project successfully builds**, you can run the following command:
+
+```bash
+oc get route mt12-cicd-demo
+```
+
+What this will do is show you the public route to your app running in production. Try opening this URL in your browser or your phone. This is live on the public internet!
 
 #### 3. Setting up Continuous Deployment Using a Webhook Callback from GitHub Actions to OKD
 
