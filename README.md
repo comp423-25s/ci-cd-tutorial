@@ -102,50 +102,35 @@ oc expose svc/mt12-cicd-demo --labels=app=mt12-cicd-demo
 
 #### 3. Setting up Continuous Deployment Using a Webhook Callback from GitHub Actions to OKD
 
-# TODO explain what we are doing here and what a webhook call back is. How it will be triggered. Why we need a secret in this direction.
+A webhook callback is a mechanism by which OKD can be triggered to start a new build when it receives an HTTP POST request. In this setup, after your tests pass on GitHub Actions, a POST request is sent to the webhook URL configured in your OKD BuildConfig. This webhook URL contains a secret token that ensures only authorized calls (i.e. from your GitHub Actions) can trigger a build. 
 
-We will run the following command to  `oc get bc mt12-cicd-demo -o yaml | grep -C 1 generic`
+To configure this:
 
-This secret token will get plugged into a webhook callback URL:
+1. To get the webhook URL:
+   ```bash
+   oc describe bc/mt12-cicd-demo | grep -C 1 generic
+   ```
+2. To get the webhook secret token:
+   ```bash
+   oc get bc mt12-cicd-demo -o yaml | grep -C 1 generic
+   ```
+   Look for the "generic" trigger section and note the secret token.
+3. Combine the token with the base webhook URL (as seen in the BuildConfig details) to form the full webhook URL.
+4. In your GitHub repository, add this full URL as a secret named `WEBHOOK_URL`:
+   - Go to **Settings > Security > Secrets and Variables > Actions > Repository Secrets > New Repository Secret**.
+   - Set the name to `WEBHOOK_URL` and paste in the full URL.
+5. In your GitHub Actions workflow, the following step sends a POST request to trigger a new build:
+   ```yaml
+   - name: Trigger OKD Build via Webhook
+     if: success()
+     run: |
+       curl -X POST "${{ secrets.WEBHOOK_URL }}"
+   ```
+   This step uses the webhook URL to trigger a build only when prior steps succeed.
 
-`oc describe bc/mt12-cicd-demo | grep -C 1 generic`
+#### Summary
 
-Once you have the webhook URL (usually printed as part of the Base URL when you set up the trigger), append the retrieved secret token appropriately. Add this full webhook URL as a secret (e.g., WEBHOOK_URL) in your GitHub repository's Secrets by doing the following. Open your GitHub Repo:
-
-1. Go to **Settings**
-2. 
-
-
-Then, update your GitHub Actions workflow (in .github/workflows/test.yml) to send a POST request after a successful run:
-
-```yaml
-- name: Trigger OKD Build via Webhook
-  if: success()
-  run: |
-    curl -X POST "${{ secrets.WEBHOOK_URL }}"
-```
-
-*Explanation*:
-- Inspecting the BuildConfig YAML allows you to manually obtain the webhook secret.
-- Using the webhook URL in your GitHub Actions workflow triggers a new build without requiring the oc CLI.
-
-4. Make sure your OKD BuildConfig is configured to expect webhook triggers and that the URL is accessible from GitHub's public network.
-
-This approach allows you to separate the build trigger from the authentication process and eliminates the need to install or use the oc CLI directly in your GitHub Actions workflow.
-
-4. **Final Workflow Reminder:**
-   Ensure that the GitHub Action has the proper permissions and that the `oc` CLI is available on the runner. If needed, add a step to install or update `oc` before logging in.
-
-### Summary
-
-With the Dockerfile read from the repository and a source secret provided:
-1. A single command creates the BuildConfig, ImageStream, and DeploymentConfig (all tagged with "app=mt12-cicd-demo").
-2. OKD authenticates with GitHub using your source secret.
-3. Every push or merge to the `main` branch runs tests via GitHub Actions.
-4. On a successful test run, GitHub Actions automatically triggers an OKD build.
-5. The integrated configuration updates the deployment automatically.
-
-This setup ensures that only well-tested code is deployed to production, maintaining a robust CI/CD pipeline.
+This setup allows a robust CI/CD pipeline where any push or PR to the main branch runs tests via GitHub Actions. After successful tests, a secure webhook callback is sent to OKD to start a build. The configuration ensures the Dockerfile (from the ".production" directory) is used and the application (tagged with "app=mt12-cicd-demo") is deployed with minimal manual intervention, while keeping sensitive tokens secure within GitHub Secrets.
 
 Happy deploying!
 
