@@ -135,6 +135,8 @@ To configure this:
    ```
    This step uses the webhook URL to trigger a build only when prior steps succeed.
 
+You can try testing this by modifying something simple in your application that will not break the tests. For example, perhaps just switch the ordering in `main.py` of the two timezones in the `TIMEZONES` constant. Make a commit with the changes to your app and `test.yml`. Push the commit to `main` (we can circumvent best practices about branching for educational purposes here!) When you open your GitHub repository, you can see the action flow through the steps. In one of the final steps you will see "Deploy to production". If you then go look at OKD, you will see a new build is kicked off and working to build a new production image. Once it completes, the image is deployed to your app and it is live on the web! This is continuous integration (via testing) and continuous deployment (contingent on tests passing)! These flows are common in industrial software engineering settings.
+
 #### Summary
 
 This setup allows a robust CI/CD pipeline where any push or PR to the main branch runs tests via GitHub Actions. After successful tests, a secure webhook callback is sent to OKD to start a build. The configuration ensures the Dockerfile (from the ".production" directory) is used and the application (tagged with "app=mt12-cicd-demo") is deployed with minimal manual intervention, while keeping sensitive tokens secure within GitHub Secrets.
