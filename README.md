@@ -90,6 +90,8 @@ oc new-app . \
 - The `--source-secret=mt12-cicd-git-credentials` flag directs OKD to use the secret you created to clone the private repo.
 - The `--labels=app=mt12-cicd-demo` parameter tags the created BuildConfig, ImageStream, and DeploymentConfig with a common label, "app=mt12-cicd-demo".
 
+Over in OKD, in the web browser, you should look to see the application appear in your project. You should find its build status and track the build.
+
 #### 2. Expose the Service
 Expose your FastAPI service externally by creating a route, also tagging it:
 ```bash
@@ -98,18 +100,41 @@ oc expose svc/mt12-cicd-demo --labels=app=mt12-cicd-demo
 *Explanation*:  
 - This command creates a Route resource with a public URL to your FastAPI application and tags it for bulk deletion later.
 
-#### 3. Set Up CI/CD Integration for Automatic OKD Build
-Configure your GitHub Actions workflow so that after tests pass, it automatically starts an OKD build:
-```bash
-# Log in to OKD using stored token and server URL
-oc login --token=${{ secrets.OKD_TOKEN }} --server=${{ secrets.OKD_SERVER }}
+#### 3. Setting up Continuous Deployment Using a Webhook Callback from GitHub Actions to OKD
 
-# Trigger a new build (integrated with the DeploymentConfig)
-oc start-build mt12-cicd-demo --from-dir=. --follow
+# TODO explain what we are doing here and what a webhook call back is. How it will be triggered. Why we need a secret in this direction.
+
+We will run the following command to  `oc get bc mt12-cicd-demo -o yaml | grep -C 1 generic`
+
+This secret token will get plugged into a webhook callback URL:
+
+`oc describe bc/mt12-cicd-demo | grep -C 1 generic`
+
+Once you have the webhook URL (usually printed as part of the Base URL when you set up the trigger), append the retrieved secret token appropriately. Add this full webhook URL as a secret (e.g., WEBHOOK_URL) in your GitHub repository's Secrets by doing the following. Open your GitHub Repo:
+
+1. Go to **Settings**
+2. 
+
+
+Then, update your GitHub Actions workflow (in .github/workflows/test.yml) to send a POST request after a successful run:
+
+```yaml
+- name: Trigger OKD Build via Webhook
+  if: success()
+  run: |
+    curl -X POST "${{ secrets.WEBHOOK_URL }}"
 ```
-*Explanation*:  
-- Your GitHub Actions workflow logs in to OKD using stored secrets.
-- When tests pass, this command triggers the build, updating the ImageStream and automatically redeploying the application via the integrated DeploymentConfig.
+
+*Explanation*:
+- Inspecting the BuildConfig YAML allows you to manually obtain the webhook secret.
+- Using the webhook URL in your GitHub Actions workflow triggers a new build without requiring the oc CLI.
+
+4. Make sure your OKD BuildConfig is configured to expect webhook triggers and that the URL is accessible from GitHub's public network.
+
+This approach allows you to separate the build trigger from the authentication process and eliminates the need to install or use the oc CLI directly in your GitHub Actions workflow.
+
+4. **Final Workflow Reminder:**
+   Ensure that the GitHub Action has the proper permissions and that the `oc` CLI is available on the runner. If needed, add a step to install or update `oc` before logging in.
 
 ### Summary
 
