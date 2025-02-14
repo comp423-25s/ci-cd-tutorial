@@ -78,7 +78,11 @@ Follow these steps to create a Personal Access Token (PAT) with read access for 
 Create an application that includes a BuildConfig, ImageStream, and DeploymentConfig. Because the repository is private, include the `--source-secret` flag. Tag every resource with the label "app=mt12-cicd-demo" by adding the `--labels` flag:
 
 ```bash
-oc new-app . --name=mt12-cicd-demo --context-dir=.production --source-secret=mt12-cicd-git-credentials --labels=app=mt12-cicd-demo
+oc new-app . \
+--name=mt12-cicd-demo \
+--source-secret=mt12-cicd-git-credentials \
+--strategy=docker \
+--labels=app=mt12-cicd-demo
 ```
 
 *Explanation*:  
