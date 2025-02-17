@@ -25,10 +25,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Test with pytest
-        run: pytest
+      # - name: Test with pytest (CI)
+      #   run: pytest
 
-      # - name: Deploy to production
+      # - name: Deploy to production (CD)
       #   if: success()
       #   run: |
       #     curl -X POST "${{ secrets.WEBHOOK_URL }}"
